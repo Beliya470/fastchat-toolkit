@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastChat — AI Chatbot</title>
+  <style>
+    /* =====================================================
+       RESET & ROOT VARIABLES
+       ===================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* Dark purple / midnight colour palette */
+      --bg-page:        #0d0d1a;
+      --bg-header:      #12122b;
+      --bg-chat:        #0f0f20;
+      --bg-input-area:  #12122b;
+      --bubble-user:    #4a2d8a;
+      --bubble-user-txt:#e8d8ff;
+      --bubble-bot:     #1a1a35;
+      --bubble-bot-txt: #c8c8e8;
+      --accent:         #7c3aed;
+      --accent-hover:   #6d28d9;
+      --text-primary:   #e2e0f0;
+      --text-muted:     #7a7a9a;
+      --border:         #2a2a50;
+      --thinking-dot:   #7c3aed;
+      --error-bg:       #3a1515;
+      --error-txt:      #f87171;
+      --scrollbar-thumb:#2a2a50;
+    }
+
+    /* =====================================================
+       BODY & LAYOUT
+       ===================================================== */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      height: 100dvh;            /* dynamic viewport height for mobile */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* =====================================================
+       HEADER
+       ===================================================== */
+    header {
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .header-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+    }
+
+    .header-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .header-badge {
+      margin-left: auto;
+      font-size: 0.68rem;
+      color: var(--accent);
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      border-radius: 20px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+
+    /* =====================================================
+       CHAT WINDOW
+       ===================================================== */
+    #chat-window {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px;
+      background: var(--bg-chat);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Custom scrollbar (webkit) */
+    #chat-window::-webkit-scrollbar { width: 6px; }
+    #chat-window::-webkit-scrollbar-track { background: transparent; }
+    #chat-window::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 3px;
+    }
+
+    /* =====================================================
+       MESSAGE ROWS
+       Each row wraps one bubble + optional avatar/spacer
+       ===================================================== */
+    .msg-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      max-width: 760px;
+      width: 100%;
+    }
+
+    /* User messages sit on the RIGHT */
+    .msg-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    /* Bot messages sit on the LEFT */
+    .msg-row.bot {
+      align-self: flex-start;
+    }
+
+    /* Error messages full-width, centred */
+    .msg-row.error {
+      align-self: center;
+      max-width: 640px;
+    }
+
+    /* =====================================================
+       AVATAR CIRCLES
+       ===================================================== */
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      user-select: none;
+    }
+
+    .avatar.user-avatar {
+      background: var(--bubble-user);
+      color: var(--bubble-user-txt);
+    }
+
+    .avatar.bot-avatar {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* =====================================================
+       CHAT BUBBLES
+       ===================================================== */
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      line-height: 1.6;
+      font-size: 0.92rem;
+      max-width: calc(100% - 46px);   /* leave room for avatar */
+      word-break: break-word;
+      white-space: pre-wrap;          /* preserve line breaks in replies */
+    }
+
+    /* User bubble — lighter purple, right-aligned rounded corners */
+    .bubble.user-bubble {
+      background: var(--bubble-user);
+      color: var(--bubble-user-txt);
+      border-bottom-right-radius: 4px;
+    }
+
+    /* Bot bubble — dark card, left-aligned rounded corners */
+    .bubble.bot-bubble {
+      background: var(--bubble-bot);
+      color: var(--bubble-bot-txt);
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* Error bubble */
+    .bubble.error-bubble {
+      background: var(--error-bg);
+      color: var(--error-txt);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      border-radius: 10px;
+      width: 100%;
+      font-size: 0.875rem;
+    }
+
+    .bubble.error-bubble strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* =====================================================
+       THINKING INDICATOR (animated dots)
+       ===================================================== */
+    #thinking {
+      display: none;           /* hidden by default, shown during API call */
+      align-self: flex-start;
+      align-items: flex-end;
+      gap: 8px;
+      max-width: 760px;
+    }
+
+    #thinking.visible {
+      display: flex;
+    }
+
+    .thinking-bubble {
+      background: var(--bubble-bot);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      padding: 14px 18px;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--thinking-dot);
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0);     opacity: 0.5; }
+      40%           { transform: translateY(-6px);   opacity: 1;   }
+    }
+
+    /* =====================================================
+       WELCOME / EMPTY STATE
+       ===================================================== */
+    #empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    #empty-state .big-icon {
+      font-size: 3rem;
+      margin-bottom: 8px;
+    }
+
+    #empty-state h2 {
+      font-size: 1.2rem;
+      color: var(--text-primary);
+    }
+
+    #empty-state p {
+      font-size: 0.875rem;
+      max-width: 340px;
+      line-height: 1.6;
+    }
+
+    /* =====================================================
+       INPUT AREA
+       ===================================================== */
+    #input-area {
+      background: var(--bg-input-area);
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    #user-input {
+      flex: 1;
+      background: #1a1a35;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 0.92rem;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      min-height: 46px;
+      max-height: 140px;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+
+    #user-input::placeholder { color: var(--text-muted); }
+    #user-input:focus { border-color: var(--accent); }
+
+    #send-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      width: 46px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    #send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    #send-btn:active:not(:disabled) { transform: scale(0.93); }
+
+    #send-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    #send-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: #fff;
+    }
+
+    /* =====================================================
+       FOOTER
+       ===================================================== */
+    footer {
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      padding: 6px;
+      background: var(--bg-input-area);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* =====================================================
+       RESPONSIVE — narrow screens
+       ===================================================== */
+    @media (max-width: 480px) {
+      header { padding: 10px 14px; }
+      .header-badge { display: none; }
+      #chat-window { padding: 16px 10px; }
+      #input-area { padding: 10px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =====================================================
+       HEADER
+       ===================================================== -->
+  <header>
+    <div class="header-icon">&#x1F916;</div>
+    <div>
+      <div class="header-title">FastChat</div>
+      <div class="header-subtitle">Powered by Claude AI</div>
+    </div>
+    <div class="header-badge">claude-sonnet-4-5</div>
+  </header>
+
+  <!-- =====================================================
+       CHAT WINDOW
+       All messages are injected here dynamically by JS
+       ===================================================== -->
+  <div id="chat-window">
+
+    <!-- Empty / welcome state — hidden once first message is sent -->
+    <div id="empty-state">
+      <div class="big-icon">&#x1F4AC;</div>
+      <h2>Start a conversation</h2>
+      <p>Ask me anything about FastAPI or Python. I'm here to help you learn!</p>
+    </div>
+
+    <!-- Thinking indicator — shown while waiting for the API -->
+    <div id="thinking">
+      <div class="avatar bot-avatar">AI</div>
+      <div class="thinking-bubble">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+
+  </div><!-- /#chat-window -->
+
+  <!-- =====================================================
+       INPUT AREA
+       ===================================================== -->
+  <div id="input-area">
+    <textarea
+      id="user-input"
+      placeholder="Ask something about FastAPI or Python…"
+      rows="1"
+      autofocus
+    ></textarea>
+    <button id="send-btn" title="Send message">
+      <!-- Paper-plane SVG icon -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
+
+  <footer>FastChat &mdash; FastAPI + Claude API &bull; Session managed locally</footer>
+
+  <!-- =====================================================
+       JAVASCRIPT
+       All application logic lives here.
+       ===================================================== -->
+  <script>
+    // ---------------------------------------------------
+    // 1. GENERATE A SESSION ID
+    //    We create a random ID when the page loads and reuse
+    //    it for every message.  This lets the server keep
+    //    track of our conversation history.
+    // ---------------------------------------------------
+    const sessionId = Math.random().toString(36).substr(2, 9);
+
+    // ---------------------------------------------------
+    // 2. GRAB DOM REFERENCES
+    //    Store references to elements we'll use repeatedly
+    //    so we don't have to query the DOM every time.
+    // ---------------------------------------------------
+    const chatWindow  = document.getElementById('chat-window');
+    const userInput   = document.getElementById('user-input');
+    const sendBtn     = document.getElementById('send-btn');
+    const thinking    = document.getElementById('thinking');
+    const emptyState  = document.getElementById('empty-state');
+
+    // ---------------------------------------------------
+    // 3. AUTO-RESIZE TEXTAREA
+    //    Grows up to its max-height as the user types more.
+    // ---------------------------------------------------
+    userInput.addEventListener('input', () => {
+      userInput.style.height = 'auto';
+      userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+    });
+
+    // ---------------------------------------------------
+    // 4. SEND ON ENTER (without Shift)
+    //    Shift+Enter inserts a newline; plain Enter sends.
+    // ---------------------------------------------------
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();   // stop the default newline
+        sendMessage();
+      }
+    });
+
+    // Send button click
+    sendBtn.addEventListener('click', sendMessage);
+
+    // ---------------------------------------------------
+    // 5. appendMessage(role, text)
+    //    Creates a message bubble and inserts it into the
+    //    chat window BEFORE the thinking indicator so the
+    //    indicator always stays at the bottom.
+    // ---------------------------------------------------
+    function appendMessage(role, text) {
+      // Hide the empty/welcome state after first message
+      if (emptyState) emptyState.style.display = 'none';
+
+      // Create the outer row
+      const row = document.createElement('div');
+      row.classList.add('msg-row', role);   // role = 'user', 'bot', or 'error'
+
+      if (role === 'user') {
+        // Avatar for user
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar user-avatar';
+        avatar.textContent = 'You';
+
+        // Bubble
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble user-bubble';
+        bubble.textContent = text;
+
+        row.appendChild(bubble);
+        row.appendChild(avatar);
+
+      } else if (role === 'bot') {
+        // Avatar for assistant
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar bot-avatar';
+        avatar.textContent = 'AI';
+
+        // Bubble
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble bot-bubble';
+        bubble.textContent = text;
+
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+
+      } else {
+        // Error message — spans full width, no avatar
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble error-bubble';
+        bubble.innerHTML = '<strong>&#x26A0; Error</strong>' + escapeHtml(text);
+        row.appendChild(bubble);
+      }
+
+      // Insert the row BEFORE the thinking indicator so the
+      // indicator always stays at the very bottom.
+      chatWindow.insertBefore(row, thinking);
+
+      // Scroll the chat window to show the latest message
+      scrollToBottom();
+    }
+
+    // ---------------------------------------------------
+    // 6. escapeHtml(str)
+    //    Safety helper — converts < > & etc. to HTML entities
+    //    so error text can't inject HTML/JS.
+    // ---------------------------------------------------
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ---------------------------------------------------
+    // 7. scrollToBottom()
+    //    Smoothly scrolls the chat window to the bottom.
+    // ---------------------------------------------------
+    function scrollToBottom() {
+      chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+    }
+
+    // ---------------------------------------------------
+    // 8. setLoading(isLoading)
+    //    Disables/enables the input and button while waiting
+    //    for the API response and shows/hides the dots.
+    // ---------------------------------------------------
+    function setLoading(isLoading) {
+      userInput.disabled = isLoading;
+      sendBtn.disabled   = isLoading;
+
+      if (isLoading) {
+        thinking.classList.add('visible');    // show animated dots
+        scrollToBottom();
+      } else {
+        thinking.classList.remove('visible'); // hide animated dots
+        userInput.focus();
+      }
+    }
+
+    // ---------------------------------------------------
+    // 9. sendMessage()
+    //    The main function — reads the input, validates it,
+    //    posts to /chat, and renders the reply (or error).
+    // ---------------------------------------------------
+    async function sendMessage() {
+      const text = userInput.value.trim();
+
+      // Don't send if the input is empty
+      if (!text) return;
+
+      // Clear the input and reset its height
+      userInput.value = '';
+      userInput.style.height = 'auto';
+
+      // Show the user's message immediately
+      appendMessage('user', text);
+
+      // Disable input and show thinking dots
+      setLoading(true);
+
+      try {
+        // POST to /chat on the same server
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message:    text,
+            session_id: sessionId,
+          }),
+        });
+
+        // Parse the JSON body regardless of status code
+        const data = await response.json();
+
+        if (response.ok) {
+          // Success — render the assistant's reply
+          appendMessage('bot', data.reply);
+        } else {
+          // The server returned an error (4xx / 5xx)
+          // Try to extract a helpful message from the response body
+          const errMsg = data?.detail?.error_message
+                      || data?.detail
+                      || `Server error ${response.status}`;
+          appendMessage('error', errMsg);
+        }
+
+      } catch (networkError) {
+        // fetch() itself threw — likely a network / CORS issue
+        appendMessage(
+          'error',
+          'Could not reach the server. Make sure the FastAPI server is running '
+          + '(uvicorn main:app --reload) and try again.'
+        );
+      } finally {
+        // Always re-enable the input, even if there was an error
+        setLoading(false);
+      }
+    }
+  </script>
+
+</body>
+</html>

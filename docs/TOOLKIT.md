@@ -8,7 +8,7 @@
 
 **Technology stack:**
 - **Backend framework:** FastAPI (Python)
-- **AI model:** Google Gemini API (`gemini-1.5-flash`)
+- **AI model:** Google Gemini API (`gemini-2.0-flash`)
 - **Runtime:** Uvicorn (ASGI server)
 - **Data validation:** Pydantic v2
 - **Config management:** python-dotenv
@@ -216,7 +216,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Initialise the model with a system instruction that shapes its behaviour
 model = genai.GenerativeModel(
-    "gemini-1.5-flash",
+    "gemini-2.0-flash",
     system_instruction="You are a friendly assistant helping beginners learn FastAPI and Python.",
 )
 ```

@@ -71,7 +71,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # personality and behaviour for every conversation.
 # "gemini-1.5-flash" is fast, capable, and free-tier friendly.
 model = genai.GenerativeModel(
-    "gemini-1.5-flash",
+    "gemini-2.0-flash",
     system_instruction=(
         "You are a friendly assistant helping beginners learn "
         "FastAPI and Python. Keep answers clear and encouraging."

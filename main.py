@@ -1,8 +1,8 @@
 # ============================================================
-# FastChat — AI Chatbot API built with FastAPI + Claude API
+# FastChat — AI Chatbot API built with FastAPI + Gemini API
 # ============================================================
 # This file is the heart of the application. It defines all
-# the API routes, connects to the Claude AI service, and
+# the API routes, connects to the Google Gemini AI service, and
 # manages per-session conversation history.
 # ============================================================
 
@@ -18,8 +18,11 @@ from fastapi.responses import FileResponse
 # Uvicorn is the server that actually runs FastAPI
 import uvicorn
 
-# The official Anthropic Python SDK — used to call Claude
-import anthropic
+# The official Google Generative AI Python SDK — used to call Gemini
+import google.generativeai as genai
+
+# google.api_core.exceptions gives us specific error classes to catch
+import google.api_core.exceptions
 
 # os lets us read environment variables (like our API key)
 import os
@@ -35,32 +38,45 @@ from pydantic import BaseModel
 
 # --- Load environment variables ------------------------------
 # This reads the .env file in the project root.
-# After this call, os.getenv("ANTHROPIC_API_KEY") will return
+# After this call, os.getenv("GEMINI_API_KEY") will return
 # whatever value you put in your .env file.
 load_dotenv()
 
 # Fetch the API key from the environment
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # If the key is missing or still the placeholder, raise an error
 # immediately so the developer sees a helpful message right away
 # instead of a confusing crash later.
-if not ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == "your_api_key_here":
+if not GEMINI_API_KEY or GEMINI_API_KEY == "your_gemini_api_key_here":
     raise RuntimeError(
-        "\n\n❌  ANTHROPIC_API_KEY is missing or not set!\n"
+        "\n\n❌  GEMINI_API_KEY is missing or not set!\n"
         "To fix this:\n"
         "  1. Copy .env.example to .env\n"
         "     Windows:  copy .env.example .env\n"
         "     Mac/Linux: cp .env.example .env\n"
-        "  2. Open .env and replace 'your_api_key_here' with your real key\n"
-        "     Get a key at: https://console.anthropic.com\n"
+        "  2. Open .env and replace 'your_gemini_api_key_here' with your real key\n"
+        "     Get a free key at: https://aistudio.google.com/apikey\n"
         "  3. Restart the server.\n"
     )
 
-# --- Initialize the Anthropic client ------------------------
-# This creates a client object we'll use to send messages to Claude.
-# It automatically picks up ANTHROPIC_API_KEY from the environment.
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+# --- Configure the Gemini client ----------------------------
+# genai.configure() registers your API key globally so every
+# subsequent call to the SDK uses it automatically.
+genai.configure(api_key=GEMINI_API_KEY)
+
+# --- Initialize the Gemini model ----------------------------
+# GenerativeModel selects which Gemini model to use and sets
+# the system_instruction — a hidden prompt that shapes the AI's
+# personality and behaviour for every conversation.
+# "gemini-1.5-flash" is fast, capable, and free-tier friendly.
+model = genai.GenerativeModel(
+    "gemini-1.5-flash",
+    system_instruction=(
+        "You are a friendly assistant helping beginners learn "
+        "FastAPI and Python. Keep answers clear and encouraging."
+    ),
+)
 
 # --- Initialize the FastAPI application ---------------------
 # title and description appear in the auto-generated API docs
@@ -69,7 +85,7 @@ app = FastAPI(
     title="FastChat API",
     description=(
         "A beginner-friendly chatbot API powered by FastAPI and the "
-        "Anthropic Claude API. Supports multi-turn conversations with "
+        "Google Gemini API. Supports multi-turn conversations with "
         "per-session history. Visit /ui for the browser chat interface."
     ),
     version="1.0.0",
@@ -83,14 +99,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- Conversation history store -----------------------------
 # A plain Python dictionary that maps session_id → list of messages.
-# Each message is a dict with "role" ("user" or "assistant") and "content".
-# Example:
-#   {
-#     "abc123": [
-#       {"role": "user",      "content": "Hello!"},
-#       {"role": "assistant", "content": "Hi there! How can I help?"},
-#     ]
-#   }
+# Each message is stored in our own format for consistency:
+#   {"role": "user" or "assistant", "content": "the text"}
+#
+# When we call Gemini, we convert this list into Gemini's expected
+# format on the fly (see the /chat endpoint below).
 #
 # NOTE: This is an in-memory store — it resets when the server restarts.
 # For a production app you'd use a database instead.
@@ -103,7 +116,7 @@ conversation_history: dict = {}
 
 class ChatRequest(BaseModel):
     """Data the client must send when posting a message."""
-    # The text message the user wants to send to Claude
+    # The text message the user wants to send to Gemini
     message: str
     # A unique ID that groups messages into a conversation.
     # Defaults to "default" so simple clients don't need to set it.
@@ -111,8 +124,8 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Data FastAPI sends back after getting Claude's reply."""
-    # The text reply generated by Claude
+    """Data FastAPI sends back after getting Gemini's reply."""
+    # The text reply generated by Gemini
     reply: str
     # Echo back the session_id so the client can track conversations
     session_id: str
@@ -161,11 +174,11 @@ def chat_ui():
 
 # --- POST /chat ---------------------------------------------
 # This is the main endpoint. The client sends a message and
-# gets back a reply from Claude, with full conversation context.
+# gets back a reply from Gemini, with full conversation context.
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     """
-    Accepts a user message and session_id, calls the Claude API
+    Accepts a user message and session_id, calls the Gemini API
     with the full conversation history, and returns the AI reply.
     """
 
@@ -174,72 +187,76 @@ def chat(request: ChatRequest):
     # with an empty list. setdefault does both checks in one call.
     history = conversation_history.setdefault(request.session_id, [])
 
-    # Step 2: Add the user's new message to the history.
-    # Claude expects messages in this exact format.
-    history.append({
-        "role": "user",
-        "content": request.message,
-    })
+    # Step 2: Convert our stored history into Gemini's expected format.
+    # Our format:  {"role": "user"/"assistant", "content": "text"}
+    # Gemini format: {"role": "user"/"model",   "parts": ["text"]}
+    #
+    # Key differences:
+    #   - Gemini uses "parts" (a list) instead of "content" (a string)
+    #   - Gemini uses the role name "model" where we store "assistant"
+    gemini_history = []
+    for msg in history:
+        gemini_role = "model" if msg["role"] == "assistant" else "user"
+        gemini_history.append({
+            "role": gemini_role,
+            "parts": [msg["content"]],
+        })
 
-    # Step 3: Call the Claude API inside a try/except block.
-    # We catch specific Anthropic errors so we can return clear
+    # Step 3: Call the Gemini API inside a try/except block.
+    # We catch specific Google API errors so we can return clear
     # error messages instead of a generic 500 crash.
     try:
-        # messages.create() sends the full conversation to Claude.
-        # - model: which Claude model to use
-        # - system: a hidden instruction that sets Claude's personality
-        # - messages: the full back-and-forth history for this session
-        # - max_tokens: the maximum length of Claude's reply
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            system=(
-                "You are a friendly assistant helping beginners learn "
-                "FastAPI and Python. Keep answers clear and encouraging."
-            ),
-            messages=history,
-            max_tokens=1024,
-        )
+        # start_chat() creates a stateful chat session.
+        # We pass in the converted history so Gemini has full context
+        # of everything said earlier in this session.
+        chat_session = model.start_chat(history=gemini_history)
 
-        # Extract the text from the first content block in the response
-        assistant_reply = response.content[0].text
+        # send_message() sends the latest user message to Gemini.
+        # The SDK automatically appends it to the chat history internally.
+        response = chat_session.send_message(request.message)
 
-    except anthropic.AuthenticationError:
-        # Raised when the API key is invalid or expired
+        # Extract the plain text from the response object
+        reply_text = response.text
+
+    except google.api_core.exceptions.PermissionDenied:
+        # Raised when the API key is invalid, missing, or does not have
+        # permission to use the requested model.
         raise HTTPException(
             status_code=401,
             detail={
                 "error": "Authentication failed",
                 "error_message": (
-                    "Your ANTHROPIC_API_KEY is invalid or has expired. "
+                    "Your GEMINI_API_KEY is invalid or does not have permission. "
                     "Check your .env file and make sure the key is correct. "
-                    "Get a new key at https://console.anthropic.com"
+                    "Get a free key at https://aistudio.google.com/apikey"
                 ),
             },
         )
 
-    except anthropic.APIConnectionError:
-        # Raised when there's a network problem reaching Anthropic's servers
+    except google.api_core.exceptions.InvalidArgument:
+        # Raised when the request is malformed — e.g. an empty message
+        # or an unsupported model name.
         raise HTTPException(
-            status_code=503,
+            status_code=400,
             detail={
-                "error": "Connection error",
+                "error": "Invalid request",
                 "error_message": (
-                    "Could not connect to the Anthropic API. "
-                    "Check your internet connection and try again."
+                    "The request sent to Gemini was invalid. "
+                    "Make sure your message is not empty and the model name is correct."
                 ),
             },
         )
 
-    except anthropic.RateLimitError:
-        # Raised when you've sent too many requests in a short time
+    except google.api_core.exceptions.ResourceExhausted:
+        # Raised when you've exceeded your free-tier quota or rate limit
         raise HTTPException(
             status_code=429,
             detail={
-                "error": "Rate limit exceeded",
+                "error": "Rate limit / quota exceeded",
                 "error_message": (
-                    "You've sent too many requests too quickly. "
-                    "Wait a moment and try again. If this keeps happening, "
-                    "check your Anthropic usage limits at https://console.anthropic.com"
+                    "You've hit the Gemini API rate limit or free-tier quota. "
+                    "Wait a moment and try again. Check your quota at "
+                    "https://aistudio.google.com/apikey"
                 ),
             },
         )
@@ -257,15 +274,19 @@ def chat(request: ChatRequest):
             },
         )
 
-    # Step 4: Save Claude's reply to the history so future messages
-    # in this session include the full context.
+    # Step 4: Save both the user message and Gemini's reply to our history
+    # in our own format so future messages in this session have full context.
+    history.append({
+        "role": "user",
+        "content": request.message,
+    })
     history.append({
         "role": "assistant",
-        "content": assistant_reply,
+        "content": reply_text,
     })
 
     # Step 5: Return the structured response
-    return ChatResponse(reply=assistant_reply, session_id=request.session_id)
+    return ChatResponse(reply=reply_text, session_id=request.session_id)
 
 
 # --- Run the app directly (optional) ------------------------

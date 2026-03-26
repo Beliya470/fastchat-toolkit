@@ -1,12 +1,12 @@
-# FastChat — AI Chatbot API with FastAPI + Claude
+# FastChat — AI Chatbot API with FastAPI + Gemini
 
-> A beginner-friendly chatbot backend built with FastAPI and the Anthropic Claude API
+> A beginner-friendly chatbot backend built with FastAPI and the Google Gemini API
 
 ---
 
 ## What This Is
 
-FastChat is a Python web application that exposes a REST API for multi-turn AI conversations powered by Anthropic's Claude model. It includes a built-in browser chat UI so you can start talking to the AI immediately — no separate frontend setup required. The project is designed to be a clear, well-commented learning example for anyone new to FastAPI and AI APIs.
+FastChat is a Python web application that exposes a REST API for multi-turn AI conversations powered by Google's Gemini model. It includes a built-in browser chat UI so you can start talking to the AI immediately — no separate frontend setup required. The project is designed to be a clear, well-commented learning example for anyone new to FastAPI and AI APIs.
 
 ---
 
@@ -14,7 +14,7 @@ FastChat is a Python web application that exposes a REST API for multi-turn AI c
 
 - **Python 3.8+** — download from https://python.org/downloads
 - **pip** — comes bundled with Python
-- **An Anthropic API key** — get one free at https://console.anthropic.com
+- **A Gemini API key** — get one free at https://aistudio.google.com/apikey (no credit card needed)
 
 ---
 
@@ -59,10 +59,10 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Open `.env` in a text editor and replace `your_api_key_here` with your real Anthropic API key:
+Open `.env` in a text editor and replace `your_gemini_api_key_here` with your real Gemini API key:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-api03-your-real-key-here
+GEMINI_API_KEY=AIzaSy-your-real-key-here
 ```
 
 > **Important:** Never commit the `.env` file to Git. It is already listed in `.gitignore`.
@@ -126,7 +126,7 @@ curl -X POST http://localhost:8000/chat \
 
 ```
 fastchat-toolkit/
-├── main.py              # FastAPI application — all routes and Claude API logic
+├── main.py              # FastAPI application — all routes and Gemini API logic
 ├── requirements.txt     # Python package dependencies
 ├── .env.example         # Template for environment variables (copy to .env)
 ├── .gitignore           # Files that should never be committed to Git
@@ -141,7 +141,7 @@ fastchat-toolkit/
 
 ## How Conversations Work
 
-Each browser session generates a random `session_id`. Every message sent to `/chat` includes this ID. The server stores the full message history in memory for each session, so Claude always has the context of the entire conversation. Sessions reset when the server restarts.
+Each browser session generates a random `session_id`. Every message sent to `/chat` includes this ID. The server stores the full message history in memory for each session, so Gemini always has the context of the entire conversation. Sessions reset when the server restarts.
 
 ---
 

@@ -1,4 +1,4 @@
-# 🚀 FastChat — Beginner's Toolkit: FastAPI + Claude API
+# 🚀 FastChat — Beginner's Toolkit: FastAPI + Gemini API
 
 ---
 
@@ -8,18 +8,18 @@
 
 **Technology stack:**
 - **Backend framework:** FastAPI (Python)
-- **AI model:** Anthropic Claude API (`claude-sonnet-4-5`)
+- **AI model:** Google Gemini API (`gemini-1.5-flash`)
 - **Runtime:** Uvicorn (ASGI server)
 - **Data validation:** Pydantic v2
 - **Config management:** python-dotenv
 
 **Why I chose this stack:**
 
-I chose FastAPI because it's one of the fastest-growing Python backend frameworks right now and it's used in real production systems — not just tutorials. I'd heard about it from senior developers who said it was easier to learn than Flask but more powerful for building APIs. I also wanted to work with a real AI API rather than a fake mock, so combining FastAPI with Anthropic's Claude API felt like the perfect challenge.
+I chose FastAPI because it's one of the fastest-growing Python backend frameworks right now and it's used in real production systems — not just tutorials. I'd heard about it from senior developers who said it was easier to learn than Flask but more powerful for building APIs. I also wanted to work with a real AI API rather than a fake mock, so combining FastAPI with Google's Gemini API felt like the perfect challenge. Gemini has a generous free tier which made it easy to get started without a credit card.
 
 **End goal:**
 
-A fully working chatbot REST API with a browser-based chat UI. When a user types a message in the browser, it travels to my FastAPI backend, gets forwarded to Claude, and the AI's response comes back and displays in the chat window — all in real time. I also wanted multi-turn conversations so Claude remembers what was said earlier in the session.
+A fully working chatbot REST API with a browser-based chat UI. When a user types a message in the browser, it travels to my FastAPI backend, gets forwarded to Gemini, and the AI's response comes back and displays in the chat window — all in real time. I also wanted multi-turn conversations so Gemini remembers what was said earlier in the session.
 
 ---
 
@@ -39,17 +39,17 @@ Hugging Face, the AI model hosting platform, uses FastAPI to serve the API endpo
 
 ---
 
-### What is the Claude API (Anthropic SDK)?
+### What is the Gemini API (Google Generative AI SDK)?
 
-The Claude API is Anthropic's service for accessing their Claude family of AI language models programmatically. The Anthropic Python SDK (`anthropic`) wraps the REST API into a clean Python interface so you can send messages and receive replies with just a few lines of code.
+The Gemini API is Google's service for accessing their Gemini family of AI language models programmatically. The `google-generativeai` Python SDK wraps the REST API into a clean Python interface so you can send messages and receive replies with just a few lines of code. It has a free tier available through Google AI Studio, making it accessible to students and beginners.
 
 **Where it's used:**
 
-The Claude API is used in AI coding assistants, customer support chatbots, document summarization tools, educational tutors, and internal knowledge-base query tools. Companies integrate it whenever they need a capable, safe AI that can follow instructions reliably.
+The Gemini API is used in AI coding assistants, customer support chatbots, document summarization tools, educational tutors, and internal knowledge-base query tools. Google integrates it into products like Google Workspace, and developers build on top of it whenever they need a capable AI with strong reasoning and a generous free quota.
 
 **One real-world example:**
 
-Notion AI — the writing and productivity assistant built into Notion — is powered by language models accessed through APIs similar to this one. When you ask Notion AI to summarise a document or draft an email, it's making an API call to an LLM in the background, exactly the way FastChat calls Claude.
+Google's NotebookLM — an AI-powered research assistant that helps users analyse documents and take notes — is built on top of Gemini models accessed through APIs exactly like this one. When NotebookLM summarises a PDF or answers a question about your notes, it's making an API call to Gemini in the background, the same way FastChat does.
 
 ---
 
@@ -62,8 +62,8 @@ Notion AI — the writing and productivity assistant built into Notion — is po
 | **Package manager** | pip (comes with Python) |
 | **Code editor** | VS Code (recommended — great Python extension) |
 | **Terminal** | Windows Terminal, PowerShell, macOS Terminal, or bash |
-| **API key** | An Anthropic API key — get one free at https://console.anthropic.com |
-| **Internet connection** | Required to call the Claude API |
+| **API key** | A Gemini API key — get one free at https://aistudio.google.com/apikey |
+| **Internet connection** | Required to call the Gemini API |
 
 **Checking your Python version:**
 
@@ -124,7 +124,7 @@ After activation you should see `(venv)` at the start of your terminal prompt. T
 pip install -r requirements.txt
 ```
 
-This installs FastAPI, Uvicorn, the Anthropic SDK, python-dotenv, and Pydantic all at once. It may take a minute or two on a slow connection.
+This installs FastAPI, Uvicorn, the Google Generative AI SDK, python-dotenv, and Pydantic all at once. It may take a minute or two on a slow connection.
 
 ---
 
@@ -138,13 +138,13 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Now open the new `.env` file in VS Code (or any text editor) and replace `your_api_key_here` with your real Anthropic API key:
+Now open the new `.env` file in VS Code (or any text editor) and replace `your_gemini_api_key_here` with your real Gemini API key:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxx
+GEMINI_API_KEY=AIzaSy-your-real-key-here
 ```
 
-Save the file. **Do not commit `.env` to Git** — it's already listed in `.gitignore`.
+Get a free key at https://aistudio.google.com/apikey — no credit card needed. Save the file. **Do not commit `.env` to Git** — it's already listed in `.gitignore`.
 
 ---
 
@@ -174,7 +174,7 @@ Open your browser and go to:
 http://localhost:8000/ui
 ```
 
-You should see the FastChat interface. Type a message and press Enter or click Send. If Claude replies, everything is working correctly.
+You should see the FastChat interface. Type a message and press Enter or click Send. If Gemini replies, everything is working correctly.
 
 **Bonus:** Visit `http://localhost:8000/docs` for the auto-generated interactive API documentation that FastAPI creates for free.
 
@@ -186,7 +186,7 @@ You should see the FastChat interface. Type a message and press Enter or click S
 
 FastChat is a web application with two parts:
 
-1. **A backend (main.py):** A FastAPI server that receives chat messages from the browser, forwards them to the Claude AI API along with the conversation history, gets a reply, and sends it back to the browser.
+1. **A backend (main.py):** A FastAPI server that receives chat messages from the browser, forwards them to the Google Gemini API along with the conversation history, gets a reply, and sends it back to the browser.
 
 2. **A frontend (static/index.html):** A single HTML page that provides a chat interface — bubbles for messages, a text input, and a Send button.
 
@@ -196,25 +196,32 @@ The two parts communicate using a standard HTTP POST request to the `/chat` endp
 
 ### Walking through main.py
 
-**Part 1 — Loading the environment and initialising the client:**
+**Part 1 — Loading the environment and configuring Gemini:**
 
 ```python
 from dotenv import load_dotenv
 import os
-import anthropic
+import google.generativeai as genai
 
 load_dotenv()  # Reads .env file and puts values into os.environ
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Guard clause: fail early with a helpful message if the key is missing
-if not ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == "your_api_key_here":
-    raise RuntimeError("ANTHROPIC_API_KEY is missing! Copy .env.example to .env and add your key.")
+if not GEMINI_API_KEY or GEMINI_API_KEY == "your_gemini_api_key_here":
+    raise RuntimeError("GEMINI_API_KEY is missing! Copy .env.example to .env and add your key.")
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+# Register the API key globally so all SDK calls use it automatically
+genai.configure(api_key=GEMINI_API_KEY)
+
+# Initialise the model with a system instruction that shapes its behaviour
+model = genai.GenerativeModel(
+    "gemini-1.5-flash",
+    system_instruction="You are a friendly assistant helping beginners learn FastAPI and Python.",
+)
 ```
 
-This runs when the server starts. If the key is missing the server refuses to start and tells you exactly how to fix it — much better than a mysterious crash later.
+This runs when the server starts. If the key is missing, the server refuses to start and tells you exactly how to fix it — much better than a mysterious crash later.
 
 ---
 
@@ -233,7 +240,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 conversation_history: dict = {}
 ```
 
-`conversation_history` is just a Python dictionary. Each key is a session ID (a random string generated by the browser), and each value is a list of message dicts. This is how Claude "remembers" previous messages.
+`conversation_history` is just a Python dictionary. Each key is a session ID (a random string generated by the browser), and each value is a list of message dicts. This is how Gemini "remembers" previous messages.
 
 ---
 
@@ -259,34 +266,40 @@ These models do two things at once: they validate incoming data (FastAPI returns
 
 ```python
 from fastapi import HTTPException
+import google.api_core.exceptions
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     # Get or create the history for this session
     history = conversation_history.setdefault(request.session_id, [])
 
-    # Add the user's message to the history
-    history.append({"role": "user", "content": request.message})
+    # Convert our stored history to Gemini's expected format:
+    # Our format:   {"role": "user"/"assistant", "content": "text"}
+    # Gemini format: {"role": "user"/"model",    "parts": ["text"]}
+    gemini_history = []
+    for msg in history:
+        gemini_role = "model" if msg["role"] == "assistant" else "user"
+        gemini_history.append({"role": gemini_role, "parts": [msg["content"]]})
 
     try:
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            system="You are a friendly assistant helping beginners learn FastAPI and Python.",
-            messages=history,
-            max_tokens=1024,
-        )
-        assistant_reply = response.content[0].text
+        # Start a stateful chat session with the full prior history
+        chat_session = model.start_chat(history=gemini_history)
 
-    except anthropic.AuthenticationError:
-        raise HTTPException(status_code=401, detail={"error_message": "Invalid API key."})
+        # Send the latest user message
+        response = chat_session.send_message(request.message)
+        reply_text = response.text
 
-    # Save Claude's reply so future messages have full context
-    history.append({"role": "assistant", "content": assistant_reply})
+    except google.api_core.exceptions.PermissionDenied:
+        raise HTTPException(status_code=401, detail={"error_message": "Invalid Gemini API key."})
 
-    return ChatResponse(reply=assistant_reply, session_id=request.session_id)
+    # Save both messages so future turns have full context
+    history.append({"role": "user",      "content": request.message})
+    history.append({"role": "assistant", "content": reply_text})
+
+    return ChatResponse(reply=reply_text, session_id=request.session_id)
 ```
 
-The key insight here is passing the full `history` list to every Claude API call. This is how you get multi-turn conversations — Claude sees everything that was said before.
+The key insight here is converting the stored history into Gemini's format and passing it to `start_chat()`. This is what gives Gemini the full context of the conversation.
 
 ---
 
@@ -373,19 +386,19 @@ These are the actual prompts I used while building this project with Claude Code
 
 ---
 
-**Prompt #3: Connecting the Anthropic SDK to FastAPI**
+**Prompt #3: Connecting the Google Generative AI SDK to FastAPI**
 
-- **Prompt used:** "How do I use the Anthropic Python SDK inside a FastAPI endpoint? I want to send a user's message to Claude and return the text reply. Show me the minimal working code, including how to load the API key from an .env file."
-- **AI response summary:** Claude showed the exact pattern: `load_dotenv()`, `anthropic.Anthropic(api_key=...)`, then `client.messages.create(model=..., messages=[...], max_tokens=...)` inside the route. It also explained the `messages` format — the list of dicts with `"role"` and `"content"` keys.
-- **My evaluation:** Extremely helpful. The trickiest part was understanding the message format Claude expects — the list of dicts with specific keys. Claude's explanation of why this format enables multi-turn conversation was the lightbulb moment for this whole project.
+- **Prompt used:** "How do I use the google-generativeai Python SDK inside a FastAPI endpoint? I want to send a user's message to Gemini and return the text reply. Show me the minimal working code, including how to load the API key from an .env file and how to maintain conversation history across multiple messages."
+- **AI response summary:** Claude showed the exact pattern: `load_dotenv()`, `genai.configure(api_key=...)`, then `genai.GenerativeModel(...)` to initialise the model, and `model.start_chat(history=...)` followed by `chat_session.send_message(...)` inside the route. It also explained the Gemini message format — using `"parts"` (a list) instead of `"content"` (a string), and `"model"` instead of `"assistant"` as the role name.
+- **My evaluation:** Extremely helpful. The trickiest part was understanding the format conversion needed between my stored history (which uses `"assistant"` and `"content"`) and Gemini's expected format (which uses `"model"` and `"parts"`). Claude's explanation of this difference was the key insight for making multi-turn conversations work.
 
 ---
 
 **Prompt #4: Handling API errors with HTTPException**
 
-- **Prompt used:** "What specific exceptions does the Anthropic Python SDK raise, and how do I catch them in a FastAPI endpoint and return appropriate HTTP error responses using HTTPException?"
-- **AI response summary:** Claude listed the main exceptions: `AuthenticationError` (bad key), `APIConnectionError` (network issue), `RateLimitError` (too many requests), and the generic `Exception` fallback. It showed the try/except structure and how to map each error to the right HTTP status code (401, 503, 429, 500).
-- **My evaluation:** Perfect answer. I wouldn't have known the specific exception class names without this. I did have to ask a follow-up — "can you show me how to include a helpful message in the HTTPException detail field?" — before I had the final code I wanted.
+- **Prompt used:** "What specific exceptions does the google-generativeai Python SDK raise, and how do I catch them in a FastAPI endpoint and return appropriate HTTP error responses using HTTPException?"
+- **AI response summary:** Claude explained that the Gemini SDK raises exceptions from `google.api_core.exceptions` — specifically `PermissionDenied` (bad key), `ResourceExhausted` (rate limit / quota exceeded), and `InvalidArgument` (bad request format). It showed the try/except structure and how to map each error to the right HTTP status code (401, 429, 400, 500).
+- **My evaluation:** Perfect answer. I wouldn't have known to import `google.api_core.exceptions` separately or the specific class names without this. I did have to ask a follow-up — "can you show me how to include a helpful message in the HTTPException detail field?" — before I had the final code I wanted.
 
 ---
 
@@ -400,8 +413,8 @@ These are the actual prompts I used while building this project with Claude Code
 **Prompt #6: Debugging a 422 Unprocessable Entity error**
 
 - **Prompt used:** "I'm getting a 422 Unprocessable Entity error when I POST to /chat. My request body is `{\"text\": \"hello\"}`. My Pydantic model has a field called `message`. What's going wrong and how do I fix it?"
-- **AI response summary:** Claude immediately spotted the mismatch: my request body used `"text"` as the key but my Pydantic model expected `"message"`. It explained that FastAPI returns 422 when the request body doesn't match the model's required fields, and showed how to read the `detail` array in the 422 response body to find the exact field that failed validation.
-- **My evaluation:** Solved in one prompt. I had stared at this for 20 minutes before asking Claude. The key lesson I took from this: always check the `detail` field in 422 responses — FastAPI puts a precise error message there that points exactly to the problem.
+- **AI response summary:** Claude immediately spotted the mismatch: my request body used `"text"` as the key but my Pydantic model expected `"message"`. It explained that FastAPI returns 422 when the request body doesn't match the model's required fields, and showed how to read the `detail` array in the 422 response body to find the exact field that failed validation. It also pointed out that this same error can appear when the Gemini history format is wrong — for example if you pass a string for `"parts"` instead of a list.
+- **My evaluation:** Solved in one prompt. I had stared at this for 20 minutes before asking. The key lesson: always check the `detail` field in 422 responses — FastAPI puts a precise error message there that points exactly to the problem.
 
 ---
 
@@ -409,11 +422,11 @@ These are the actual prompts I used while building this project with Claude Code
 
 ---
 
-**Issue: Missing or wrong ANTHROPIC_API_KEY**
+**Issue: Missing or wrong GEMINI_API_KEY**
 
 **What happened:** The server starts but every chat request returns a 401 Unauthorized error, or the server refuses to start with a RuntimeError about the missing key.
 
-**Why it happened:** Either the `.env` file doesn't exist (the `.env.example` file was never copied), the key value is still `your_api_key_here`, or there's a typo in the key.
+**Why it happened:** Either the `.env` file doesn't exist (the `.env.example` file was never copied), the key value is still `your_gemini_api_key_here`, or there's a typo in the key.
 
 **How I fixed it:**
 
@@ -426,19 +439,19 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Then open `.env` and paste your real key:
+Then open `.env` and paste your real Gemini API key:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-api03-your-real-key-here
+GEMINI_API_KEY=AIzaSy-your-real-key-here
 ```
 
-Get a key from https://console.anthropic.com. Restart the server after editing `.env`.
+Get a free key from https://aistudio.google.com/apikey — no credit card required. Restart the server after editing `.env`.
 
 ---
 
 **Issue: ModuleNotFoundError: No module named 'fastapi'**
 
-**What happened:** Running `python main.py` or `uvicorn main:app` crashes immediately with `ModuleNotFoundError: No module named 'fastapi'` (or `anthropic`, or `dotenv`).
+**What happened:** Running `python main.py` or `uvicorn main:app` crashes immediately with `ModuleNotFoundError: No module named 'fastapi'` (or `google.generativeai`, or `dotenv`).
 
 **Why it happened:** The dependencies haven't been installed, OR the virtual environment isn't activated, so Python is looking in the wrong place.
 
@@ -460,7 +473,7 @@ pip install -r requirements.txt
 If `requirements.txt` doesn't exist, install manually:
 
 ```bash
-pip install fastapi uvicorn[standard] anthropic python-dotenv pydantic
+pip install fastapi uvicorn[standard] google-generativeai python-dotenv pydantic
 ```
 
 ---
@@ -555,12 +568,13 @@ Add this block right after `app = FastAPI(...)` and before any routes. For produ
 | Resource | URL |
 |---|---|
 | FastAPI official documentation | https://fastapi.tiangolo.com |
-| Anthropic Python SDK documentation | https://docs.anthropic.com |
+| Google AI Studio (get API key) | https://aistudio.google.com/apikey |
+| Gemini API documentation | https://ai.google.dev |
+| Google Generative AI Python SDK | https://pypi.org/project/google-generativeai/ |
 | Uvicorn documentation | https://www.uvicorn.org |
 | Pydantic v2 documentation | https://docs.pydantic.dev |
 | FastAPI on PyPI | https://pypi.org/project/fastapi/ |
-| Anthropic Console (get API key) | https://console.anthropic.com |
 
 ---
 
-*Built as a student capstone project — FastAPI + Anthropic Claude API.*
+*Built as a student capstone project — FastAPI + Google Gemini API.*

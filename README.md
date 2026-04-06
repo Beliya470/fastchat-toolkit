@@ -1,150 +1,53 @@
-# FastChat — AI Chatbot API with FastAPI + Gemini
+<div align="center">
 
-> A beginner-friendly chatbot backend built with FastAPI and the Google Gemini API
+# 🤖 FastChat Toolkit
 
----
+### A beginner-friendly AI chatbot API — FastAPI meets Anthropic Claude.
 
-## What This Is
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white) ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) ![Anthropic](https://img.shields.io/badge/Anthropic-Claude-8B5CF6?style=for-the-badge)
 
-FastChat is a Python web application that exposes a REST API for multi-turn AI conversations powered by Google's Gemini model. It includes a built-in browser chat UI so you can start talking to the AI immediately — no separate frontend setup required. The project is designed to be a clear, well-commented learning example for anyone new to FastAPI and AI APIs.
+<img src="https://raw.githubusercontent.com/bornmay/bornmay/Update/svg/Bottom.svg" width="100%"/>
 
----
+</div>
 
-## Prerequisites
+## ✨ Overview
 
-- **Python 3.8+** — download from https://python.org/downloads
-- **pip** — comes bundled with Python
-- **A Gemini API key** — get one free at https://aistudio.google.com/apikey (no credit card needed)
+FastChat Toolkit is a starter kit for building AI-powered chat experiences. It wires FastAPI together with the Anthropic Claude API so you can prototype intelligent assistants in minutes, not days.
 
----
+## 🚀 Features
 
-## Quickstart
+- ⚡ FastAPI backend (async-first)\n- 🧠 Powered by Anthropic Claude\n- 🔌 Simple REST endpoints\n- 📚 Well-commented for learners\n- 🚀 Ready to extend for production
 
-### 1. Clone the repository
+## 🛠️ Built With
+
+The full tech stack and tooling that powers this project — see badges above.
+
+## 📦 Getting Started
 
 ```bash
-git clone <your-repo-url>
+# clone the repo
+git clone https://github.com/Beliya470/fastchat-toolkit.git
 cd fastchat-toolkit
+
+# install & run (see project files for specifics)
 ```
 
-### 2. Create and activate a virtual environment
+## 🤝 Contributing
 
-```bash
-# Create the environment (run once)
-python -m venv venv
+Contributions, issues and feature requests are welcome! Feel free to open an issue or submit a PR.
 
-# Activate it:
-# Windows (Command Prompt / PowerShell):
-venv\Scripts\activate
+## 📄 License
 
-# macOS / Linux:
-source venv/bin/activate
-```
+Distributed under the MIT License. See `LICENSE` for more information.
 
-You should see `(venv)` appear at the start of your terminal prompt.
+## 👩‍💻 Author
 
-### 3. Install dependencies
+**Anne Beliya Anziya**
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/anne-anziya-226b76128)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Beliya470)
 
-```bash
-pip install -r requirements.txt
-```
+<div align="center">
 
-### 4. Configure your API key
+⭐ If you found this project useful, consider giving it a star!
 
-```bash
-# Windows:
-copy .env.example .env
-
-# macOS / Linux:
-cp .env.example .env
-```
-
-Open `.env` in a text editor and replace `your_gemini_api_key_here` with your real Gemini API key:
-
-```
-GEMINI_API_KEY=AIzaSy-your-real-key-here
-```
-
-> **Important:** Never commit the `.env` file to Git. It is already listed in `.gitignore`.
-
-### 5. Start the server
-
-```bash
-uvicorn main:app --reload
-```
-
-You should see:
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-```
-
-### 6. Open the chat UI
-
-```
-http://localhost:8000/ui
-```
-
-Type a message and press **Enter** or click **Send**. That's it!
-
-> Bonus: visit `http://localhost:8000/docs` for the interactive API documentation.
-
----
-
-## API Endpoints
-
-| Method | Endpoint  | Description                              |
-|--------|-----------|------------------------------------------|
-| GET    | `/`       | Welcome message — confirms the API is up |
-| GET    | `/health` | Health check with UTC timestamp          |
-| GET    | `/ui`     | Browser-based chat interface             |
-| POST   | `/chat`   | Send a message and receive an AI reply   |
-
----
-
-## Example curl
-
-**Send a message to the chatbot:**
-
-```bash
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What is FastAPI and why should I learn it?", "session_id": "demo01"}'
-```
-
-**Expected JSON response:**
-
-```json
-{
-  "reply": "FastAPI is a modern, high-performance Python web framework for building APIs. You should learn it because it's incredibly fast to develop with — it gives you automatic data validation, interactive docs at /docs, and async support out of the box. It's a great choice for building AI-powered backends exactly like this one!",
-  "session_id": "demo01"
-}
-```
-
----
-
-## Project Structure
-
-```
-fastchat-toolkit/
-├── main.py              # FastAPI application — all routes and Gemini API logic
-├── requirements.txt     # Python package dependencies
-├── .env.example         # Template for environment variables (copy to .env)
-├── .gitignore           # Files that should never be committed to Git
-├── static/
-│   └── index.html       # Single-page browser chat UI (pure HTML/CSS/JS)
-├── docs/
-│   └── TOOLKIT.md       # Beginner's toolkit — full walkthrough and reference
-└── README.md            # This file
-```
-
----
-
-## How Conversations Work
-
-Each browser session generates a random `session_id`. Every message sent to `/chat` includes this ID. The server stores the full message history in memory for each session, so Gemini always has the context of the entire conversation. Sessions reset when the server restarts.
-
----
-
-## License
-
-MIT — free to use, modify, and distribute.
+</div>
